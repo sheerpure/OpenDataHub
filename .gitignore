@@ -1,0 +1,15 @@
+# Python 虛擬環境
+venv/
+__pycache__/
+*.pyc
+
+# 資料庫與密鑰
+*.db
+.env
+
+# 操作系統檔案
+.DS_Store
+Thumbs.db
+
+archive/
+*.json
