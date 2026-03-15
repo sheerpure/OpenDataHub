@@ -9,6 +9,7 @@
         .search-header { background: #004a99; color: white; padding: 60px 0; }
         .dataset-card { border-left: 5px solid #004a99; margin-bottom: 20px; transition: 0.3s; }
         .dataset-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .description-text { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
     </style>
 </head>
 <body class="bg-light">
@@ -17,55 +18,120 @@
     <div class="container">
         <h1>🔭 OpenDataHub</h1>
         <p class="lead">探索來自 arXiv 的 1,000+ 筆高品質學術研究資料</p>
-        <form action="/" method="get" class="row justify-content-center mt-4">
+        <div class="row justify-content-center mt-4">
             <div class="col-md-6">
-                <input type="text" name="q" class="form-control form-control-lg" placeholder="輸入關鍵字 (例如: physics, neural...)" value="{{ q or '' }}">
+                <input type="text" id="searchInput" class="form-control form-control-lg" placeholder="輸入關鍵字 (例如: physics, neural...)" onkeypress="if(event.key==='Enter') search()">
             </div>
             <div class="col-md-2">
-                <button type="submit" class="btn btn-warning btn-lg w-100">搜尋</button>
+                <button type="button" onclick="search()" class="btn btn-warning btn-lg w-100">搜尋</button>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 
 <div class="container mt-5">
-    {% if q %}
-        <h3>搜尋結果：『{{ q }}』 (找到 {{ results|length }} 筆)</h3>
-    {% else %}
-        <h3>最新收錄資料</h3>
-    {% endif %}
+    <h3 id="resultTitle">最新收錄資料</h3>
     <hr>
 
-    {% for ds in results %}
-    <div class="card dataset-card">
-        <div class="card-body">
-            <h5 class="card-title text-primary">{{ ds.title | safe }}</h5>
-            <p class="card-text">{{ ds.description | safe }}</p>
-            <h6 class="card-subtitle mb-2 text-muted">作者：{{ ds.author }}</h6>
-            <p class="card-text text-truncate" style="max-width: 100%;">{{ ds.description }}</p>
-            <div class="d-flex justify-content-between align-items-center">
-                <span class="badge bg-secondary">{{ ds.license }}</span>
-                <small class="text-muted">釋出日期：{{ ds.created_at }}</small>
-            </div>
+    <div id="dataset-container">
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">正在載入資料...</p>
         </div>
     </div>
-    {% endfor %}
+
     <nav class="mt-5">
-    <ul class="pagination justify-content-center">
-        <li class="page-item {{ 'disabled' if page <= 1 }}">
-            <a class="page-link" href="/?q={{ q or '' }}&page={{ page - 1 }}">上一頁</a>
-        </li>
-
-        <li class="page-item disabled">
-            <span class="page-link">第 {{ page }} 頁 / 共 {{ total_pages }} 頁</span>
-        </li>
-
-        <li class="page-item {{ 'disabled' if page >= total_pages }}">
-            <a class="page-link" href="/?q={{ q or '' }}&page={{ page + 1 }}">下一頁</a>
-        </li>
-    </ul>
-</nav>
+        <ul id="pagination-container" class="pagination justify-content-center"></ul>
+    </nav>
 </div>
+
+<script>
+    // 全域變數，紀錄目前搜尋關鍵字
+    let currentQuery = "";
+
+    async function loadDatasets(query = '', page = 1) {
+        currentQuery = query;
+        const container = document.getElementById('dataset-container');
+        const pagination = document.getElementById('pagination-container');
+        const title = document.getElementById('resultTitle');
+
+        try {
+            // 呼叫 RESTful API
+            const response = await fetch(`/api/v1/datasets?q=${query}&page=${page}`);
+            const result = await response.json();
+            
+            if (result.status !== "success") throw new Error("API 錯誤");
+
+            const datasets = result.data;
+            const pg = result.pagination;
+
+            // 1. 更新標題
+            title.innerText = query ? `搜尋結果：『${query}』 (找到 ${pg.total_items} 筆)` : "最新收錄資料";
+
+            // 2. 渲染資料卡片
+            if (datasets.length === 0) {
+                container.innerHTML = '<div class="alert alert-info">找不到相關資料，請換個關鍵字試試。</div>';
+            } else {
+                container.innerHTML = datasets.map(ds => `
+                    <div class="card dataset-card shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary">${ds.title}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">作者：${ds.author}</h6>
+                            <p class="card-text description-text">${ds.description}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <span class="badge bg-secondary">CC-BY-4.0</span>
+                                <small class="text-muted">釋出日期：${ds.created_at || '未知'}</small>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // 3. 渲染分頁 (計算上一頁/下一頁)
+            let paginationHtml = '';
+            
+            // 上一頁
+            paginationHtml += `
+                <li class="page-item ${page <= 1 ? 'disabled' : ''}">
+                    <button class="page-link" onclick="loadDatasets('${query}', ${page - 1})">上一頁</button>
+                </li>
+            `;
+
+            // 頁碼顯示
+            paginationHtml += `
+                <li class="page-item disabled">
+                    <span class="page-link">第 ${page} 頁 / 共 ${pg.total_pages || 1} 頁</span>
+                </li>
+            `;
+
+            // 下一頁
+            paginationHtml += `
+                <li class="page-item ${(!pg.total_pages || page >= pg.total_pages) ? 'disabled' : ''}">
+                    <button class="page-link" onclick="loadDatasets('${query}', ${page + 1})">下一頁</button>
+                </li>
+            `;
+
+            pagination.innerHTML = paginationHtml;
+
+            // 搜尋後滾動回上方
+            if (query) window.scrollTo({ top: 400, behavior: 'smooth' });
+
+        } catch (error) {
+            console.error(error);
+            container.innerHTML = '<div class="alert alert-danger">伺服器連線失敗，請檢查 API 是否啟動。</div>';
+        }
+    }
+
+    function search() {
+        const query = document.getElementById('searchInput').value;
+        loadDatasets(query, 1);
+    }
+
+    // 初始載入第一頁
+    document.addEventListener('DOMContentLoaded', () => {
+        loadDatasets();
+    });
+</script>
 
 </body>
 </html>
