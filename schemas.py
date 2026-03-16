@@ -48,3 +48,11 @@ class UserSchema(BaseModel):
     email: str
     class Config:
         from_attributes = True
+
+class DatasetCreate(BaseModel):
+    title: str
+    description: str
+    author: str
+
+    class Config:
+        from_attributes = True

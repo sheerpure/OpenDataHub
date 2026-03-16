@@ -28,6 +28,8 @@ import models
 import schemas
 import auth
 from search import full_text_search
+from search import index_dataset
+from auth import get_current_user
 
 # 設定模板
 templates = Jinja2Templates(directory="templates")
@@ -148,3 +150,41 @@ def get_dataset_detail(dataset_id: int, db: Session = Depends(get_db)):
     if not dataset:
         raise HTTPException(status_code=404, detail="找不到該資料集")
     return dataset
+
+
+
+from search import index_dataset # 確保你有這個匯入
+
+@app.post("/api/v1/datasets", tags=["Datasets"], status_code=201)
+def upload_dataset(
+    dataset_in: schemas.DatasetSchema, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """
+    [受保護路徑] 建立新的資料集並同步至 Elasticsearch
+    """
+    # 1. 存入 PostgreSQL
+    new_data = models.Dataset(
+        title=dataset_in.title,
+        description=dataset_in.description,
+        author=dataset_in.author,
+        # 這裡可以紀錄是誰上傳的：owner_id=current_user.id
+    )
+    db.add(new_data)
+    db.commit()
+    db.refresh(new_data)
+
+    # 2. 同步到 Elasticsearch (讓搜尋立刻找得到)
+    try:
+        index_dataset(
+            new_data.id, 
+            new_data.title, 
+            new_data.description, 
+            new_data.author, 
+            str(new_data.created_at)[:10]
+        )
+    except Exception as e:
+        print(f"ES 同步失敗: {e}")
+
+    return {"status": "success", "id": new_data.id}
