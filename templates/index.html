@@ -1,125 +1,213 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenDataHub | 專業研究資料平台</title>
+    <title>FinTechHub | Secure Ledger</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
         body { font-family: 'Inter', sans-serif; }
-        .hidden { display: none; }
+        .modal { transition: opacity 0.25s ease; }
     </style>
 </head>
-<body class="bg-[#f8fafc] text-[#0f172a] min-h-screen">
+<body class="bg-[#f8fafc] text-slate-900 min-h-screen flex">
 
-    <div id="loginModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
-        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border border-slate-200">
-            <h2 class="text-2xl font-bold text-slate-900 mb-6">歡迎回來</h2>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">帳號</label>
-                    <input type="text" id="username" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none">
+    <aside class="w-64 bg-white border-r border-slate-200 p-6 flex flex-col hidden md:flex sticky top-0 h-screen">
+        <div class="flex items-center space-x-3 mb-10">
+            <div class="w-9 h-9 bg-slate-900 rounded-lg flex items-center justify-center shadow-lg text-white font-bold">FH</div>
+            <span class="text-2xl font-extrabold tracking-tight">FinTech<span class="text-slate-400 font-medium">Hub</span></span>
+        </div>
+        <nav class="space-y-1.5 flex-grow">
+            <a href="#" class="flex items-center space-x-3 px-4 py-2.5 bg-slate-100 rounded-lg font-semibold">📊<span>Analytics</span></a>
+        </nav>
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <div class="font-bold text-sm">User: Sheer</div>
+            <button onclick="logout()" class="text-xs text-red-500 font-bold mt-2 hover:underline">LOGOUT</button>
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto">
+        <header class="bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-10 px-8 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-slate-800">Financial Overview</h1>
+            <button onclick="toggleModal()" class="px-5 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-lg hover:bg-slate-800 shadow-md">+ Add Entry</button>
+        </header>
+
+        <div class="max-w-7xl mx-auto px-8 py-10 space-y-8">
+            <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Balance</p>
+                    <div class="text-3xl font-black text-slate-900" id="statBalance">$0</div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">密碼</label>
-                    <input type="password" id="password" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-400 outline-none">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Total Income</p>
+                    <div class="text-3xl font-black text-emerald-600" id="statIncome">+$0</div>
                 </div>
-                <button onclick="handleLogin()" class="w-full bg-slate-900 text-white py-2 rounded-lg font-medium hover:bg-slate-800 transition-colors">登入</button>
-                <button onclick="toggleModal()" class="w-full text-sm text-slate-500 hover:text-slate-700">取消</button>
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <p class="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">Total Expense</p>
+                    <div class="text-3xl font-black text-red-600" id="statExpense">-$0</div>
+                </div>
+            </section>
+
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-[350px] flex flex-col">
+                    <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase">Asset Allocation</h3>
+                    <div class="flex-grow relative"><canvas id="expenseChart"></canvas></div>
+                </div>
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-[350px] flex flex-col">
+                    <h3 class="text-xs font-bold text-slate-400 mb-4 uppercase">Cash Flow Analysis</h3>
+                    <div class="flex-grow relative"><canvas id="trendChart"></canvas></div>
+                </div>
+            </section>
+
+            <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-10">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100">
+                        <tr>
+                            <th class="px-8 py-3">Description</th>
+                            <th class="px-8 py-3">Category</th>
+                            <th class="px-8 py-3">Amount</th>
+                            <th class="px-8 py-3 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionTable" class="text-sm divide-y divide-slate-100 font-medium">
+                        </tbody>
+                </table>
+            </section>
+        </div>
+    </main>
+
+    <div id="modal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
+        <div class="modal-overlay absolute w-full h-full bg-slate-900 opacity-40"></div>
+        <div class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded-2xl shadow-2xl z-50">
+            <div class="modal-content py-6 px-8">
+                <div class="flex justify-between items-center pb-5">
+                    <p class="text-xl font-bold">New Transaction</p>
+                    <button onclick="toggleModal()" class="text-slate-400 hover:text-slate-900">✕</button>
+                </div>
+                <form id="transactionForm" class="space-y-4">
+                    <input type="text" id="desc" placeholder="Description" class="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-slate-900" required>
+                    <div class="grid grid-cols-2 gap-4">
+                        <input type="number" id="amt" placeholder="Amount" class="w-full p-2.5 border rounded-xl outline-none" required>
+                        <select id="type" class="w-full p-2.5 border rounded-xl outline-none">
+                            <option value="income">Income</option>
+                            <option value="expense" selected>Expense</option>
+                        </select>
+                    </div>
+                    <input type="text" id="cat" placeholder="Category" class="w-full p-2.5 border rounded-xl outline-none">
+                    <button type="submit" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl mt-4 hover:bg-slate-800 transition-all">Submit Transaction</button>
+                </form>
             </div>
         </div>
     </div>
 
-    <nav class="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md">
-        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <div class="w-8 h-8 bg-slate-900 rounded-md flex items-center justify-center">
-                    <span class="text-white font-bold text-sm">DH</span>
-                </div>
-                <span class="text-xl font-bold tracking-tight text-slate-900">OpenDataHub</span>
-            </div>
-            <div id="navAuth" class="flex items-center space-x-4">
-                <button onclick="toggleModal()" class="text-sm font-medium text-slate-600 hover:text-slate-900">登入</button>
-                <button class="px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-md hover:bg-slate-800">上傳資料</button>
-            </div>
-        </div>
-    </nav>
-
-    <main class="max-w-4xl mx-auto px-4 py-12">
-        <header class="text-center mb-12">
-            <h1 class="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">探索研究數據的價值</h1>
-            <div class="relative max-w-xl mx-auto">
-                <input type="text" id="searchInput" oninput="handleSearch()" class="w-full pl-10 pr-4 py-4 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-slate-400 outline-none" placeholder="搜尋關鍵字...">
-            </div>
-        </header>
-        <div id="resultsContainer" class="space-y-4"></div>
-    </main>
-
     <script>
-        // 1. 彈窗控制
-        function toggleModal() {
-            document.getElementById('loginModal').classList.toggle('hidden');
-        }
+        const token = localStorage.getItem('token');
+        let expenseChart = null, trendChart = null;
 
-        // 2. 登入邏輯 (牽線！)
-        async function handleLogin() {
-            const formData = new FormData();
-            formData.append('username', document.getElementById('username').value);
-            formData.append('password', document.getElementById('password').value);
-
+        /** Initializing application state */
+        async function initDashboard() {
+            if (!token) { console.error("Missing Token"); return; }
             try {
-                const response = await fetch('/api/v1/auth/login', {
-                    method: 'POST',
-                    body: formData // OAuth2 標準要求用 FormData
-                });
+                const [dashRes, listRes] = await Promise.all([
+                    fetch('/api/v1/dashboard', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/v1/transactions', { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
 
-                if (response.ok) {
-                    const data = await response.json();
-                    localStorage.setItem('token', data.access_token); // 存入感應卡
-                    alert('登入成功！');
-                    location.reload(); // 重新整理網頁更新狀態
-                } else {
-                    alert('帳號或密碼錯誤');
-                }
-            } catch (error) {
-                console.error('登入失敗:', error);
-            }
+                const stats = await dashRes.json();
+                const list = await listRes.json();
+
+                updateKPIs(stats);
+                renderDoughnut(stats.total_income, stats.total_expense);
+                renderBar(stats.total_income, stats.total_expense);
+                renderTable(list);
+            } catch (err) { alert("Session Error. Please verify token."); }
         }
 
-        // 3. 檢查登入狀態
-        function checkAuth() {
-            const token = localStorage.getItem('token');
-            if (token) {
-                document.getElementById('navAuth').innerHTML = `
-                    <span class="text-sm text-slate-600">歡迎, 使用者</span>
-                    <button onclick="logout()" class="text-sm font-medium text-red-500">登出</button>
-                `;
-            }
+        function updateKPIs(data) {
+            document.getElementById('statBalance').innerText = `$${data.balance.toLocaleString()}`;
+            document.getElementById('statIncome').innerText = `+$${data.total_income.toLocaleString()}`;
+            document.getElementById('statExpense').innerText = `-$${data.total_expense.toLocaleString()}`;
         }
 
-        function logout() {
-            localStorage.removeItem('token');
-            location.reload();
+        function renderTable(txs) {
+            const table = document.getElementById('transactionTable');
+            table.innerHTML = txs.map(t => `
+                <tr class="hover:bg-slate-50">
+                    <td class="px-8 py-4 font-semibold text-slate-700">${t.description}</td>
+                    <td class="px-8 py-4 text-[10px] text-slate-400 uppercase tracking-widest">${t.category}</td>
+                    <td class="px-8 py-4 font-bold ${t.transaction_type==='income'?'text-emerald-600':'text-red-500'}">
+                        ${t.transaction_type==='income'?'+':'-'}$${t.amount.toLocaleString()}
+                    </td>
+                    <td class="px-8 py-4 text-right">
+                        <button onclick="deleteTx(${t.id})" class="text-red-400 hover:text-red-600 transition-all font-bold">DELETE</button>
+                    </td>
+                </tr>
+            `).join('');
         }
 
-        // 4. 搜尋邏輯
-        async function handleSearch() {
-            const q = document.getElementById('searchInput').value;
-            if (q.length < 1) return;
-            const response = await fetch(`/api/v1/datasets?q=${q}`);
-            const result = await response.json();
-            if (result.status === 'success') {
-                document.getElementById('resultsContainer').innerHTML = result.data.map(item => `
-                    <div class="p-6 bg-white border border-slate-200 rounded-lg shadow-sm">
-                        <h3 class="font-bold text-slate-900">${item.title}</h3>
-                        <p class="text-sm text-slate-500 mt-2">${item.description}</p>
-                    </div>
-                `).join('');
-            }
+        async function deleteTx(id) {
+            if (!confirm("Confirm Delete?")) return;
+            const res = await fetch(`/api/v1/transactions/${id}`, {
+                method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) initDashboard();
         }
 
-        window.onload = checkAuth;
+        /** Chart Logic: maintainAspectRatio is FALSE for responsive height control */
+        function renderDoughnut(inc, exp) {
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            if (expenseChart) expenseChart.destroy();
+            expenseChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Expense', 'Profit'],
+                    datasets: [{ data: [exp, Math.max(0, inc-exp)], backgroundColor: ['#ef4444', '#10b981'], borderWidth: 0 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '80%', plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+
+        function renderBar(inc, exp) {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            if (trendChart) trendChart.destroy();
+            trendChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Inflow vs Outflow'],
+                    datasets: [
+                        { label: 'Income', data: [inc], backgroundColor: '#10b981', borderRadius: 8, barThickness: 50 },
+                        { label: 'Expense', data: [exp], backgroundColor: '#f1f5f9', borderRadius: 8, barThickness: 50 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, border: { display: false } }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } }
+            });
+        }
+
+        document.getElementById('transactionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                description: document.getElementById('desc').value,
+                amount: parseFloat(document.getElementById('amt').value),
+                category: document.getElementById('cat').value,
+                transaction_type: document.getElementById('type').value
+            };
+            const res = await fetch('/api/v1/transactions', {
+                method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) { toggleModal(); initDashboard(); document.getElementById('transactionForm').reset(); }
+        });
+
+        function toggleModal() {
+            const modal = document.querySelector('#modal');
+            modal.classList.toggle('opacity-0');
+            modal.classList.toggle('pointer-events-none');
+        }
+
+        function logout() { localStorage.removeItem('token'); location.reload(); }
+        window.onload = initDashboard;
     </script>
 </body>
 </html>

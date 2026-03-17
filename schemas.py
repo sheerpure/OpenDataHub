@@ -56,3 +56,26 @@ class DatasetCreate(BaseModel):
 
     class Config:
         from_attributes = True
+
+class TransactionBase(BaseModel):
+    description: str
+    amount: float          
+    category: str          
+    transaction_type: str  
+
+class TransactionCreate(TransactionBase):
+    pass
+
+class TransactionSchema(TransactionBase):
+    id: int
+    date: datetime
+    owner_id: int
+
+    class Config:
+        from_attributes = True
+
+
+class DashboardSchema(BaseModel):
+    total_income: float
+    total_expense: float
+    balance: float
