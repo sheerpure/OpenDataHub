@@ -1,72 +1,65 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 from datetime import datetime
 
-class DatasetBase(BaseModel):
-    title: str
-    description: str
-    author: str
-    created_at: Optional[str] = None
-
-class DatasetSchema(BaseModel):
-    title: str
-    description: str
-    author: str
-    created_at: Optional[str] = None
-
-    class Config:
-        from_attributes = True # Pydantic 讀取 SQLAlchemy 物件
-
-class PaginationInfo(BaseModel):
-    current_page: int
-    total_items: Optional[int] = None
-    total_pages: Optional[int] = None
-
-class DatasetResponse(BaseModel):
-    status: str
-    data: List[DatasetSchema]
-    pagination: dict
+# --- Identity & Access Management (IAM) Schemas ---
 
 class UserCreate(BaseModel):
+    """Schema for user registration."""
     username: str
-    email: str
+    email: EmailStr
     password: str
 
-class UserResponse(BaseModel):
+class UserSchema(BaseModel):
+    """Schema for user profile responses."""
     id: int
     username: str
     email: str
-    class Config: from_attributes = True
+
+    class Config:
+        from_attributes = True
 
 class Token(BaseModel):
+    """Schema for JWT authentication responses."""
     access_token: str
     token_type: str
 
-class UserSchema(BaseModel):
+# --- Account Management Schemas ---
+
+class AccountBase(BaseModel):
+    """Base definition for financial accounts."""
+    name: str
+    balance: float = 0.0
+    account_type: str = "Checking" # e.g., Savings, Checking, Cash
+
+class AccountCreate(AccountBase):
+    """Schema for creating a new account."""
+    pass
+
+class AccountSchema(AccountBase):
+    """Full account schema including database IDs."""
     id: int
-    username: str
-    email: str
-    class Config:
-        from_attributes = True
-
-class DatasetCreate(BaseModel):
-    title: str
-    description: str
-    author: str
+    owner_id: int
 
     class Config:
         from_attributes = True
+
+# --- Financial Transaction Schemas ---
 
 class TransactionBase(BaseModel):
+    """Base definition for a ledger entry."""
     description: str
     amount: float          
     category: str          
-    transaction_type: str  
+    transaction_type: str  # 'income' or 'expense'
+    account_id: int        # [REQUIRED] Links the transaction to a specific account
 
 class TransactionCreate(TransactionBase):
+    """Schema for creating a new transaction record."""
     pass
 
 class TransactionSchema(TransactionBase):
+    """Full transaction record including timestamp and ownership."""
     id: int
     date: datetime
     owner_id: int
@@ -74,8 +67,21 @@ class TransactionSchema(TransactionBase):
     class Config:
         from_attributes = True
 
+# --- Analytics & Reporting Schemas ---
 
 class DashboardSchema(BaseModel):
+    """Schema for high-level financial KPIs."""
     total_income: float
     total_expense: float
     balance: float
+
+class AuditLogSchema(BaseModel):
+    """Schema for security and compliance log records."""
+    id: int
+    action: str
+    target_id: int
+    details: str
+    timestamp: datetime
+
+    class Config:
+        from_attributes = True
