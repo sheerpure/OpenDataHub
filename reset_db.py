@@ -1,31 +1,32 @@
-# reset_db.py
 from sqlalchemy import text
-from database import engine
+from database import engine, Base 
 import models
 
 def reset_database():
-    print("⚠️  Warning: This will perform a CASCADE delete on ALL tables!")
+    print("⚠️  Warning: This will PERMANENTLY DELETE all data from your SQLite database!")
     confirm = input("Are you sure? (y/n): ")
     
     if confirm.lower() == 'y':
         with engine.connect() as conn:
-            # PostgreSQL command to drop all tables in the public schema
-            print("Force dropping all tables with CASCADE...")
-            # This SQL command finds all tables and drops them with CASCADE
-            conn.execute(text("""
-                DROP TABLE IF EXISTS audit_logs CASCADE;
-                DROP TABLE IF EXISTS transactions CASCADE;
-                DROP TABLE IF EXISTS accounts CASCADE;
-                DROP TABLE IF EXISTS datasets CASCADE;
-                DROP TABLE IF EXISTS users CASCADE;
-            """))
+            print("Force dropping all tables...")
+            
+            # List tables in order: Drop child tables (with Foreign Keys) first
+            tables = ["audit_logs", "transactions", "accounts", "datasets", "users"]
+            
+            for table in tables:
+                try:
+                    conn.execute(text(f"DROP TABLE IF EXISTS {table};"))
+                    print(f" - Dropped table: {table}")
+                except Exception as e:
+                    print(f" - Error dropping {table}: {e}")
+            
             conn.commit()
         
         # Now recreate the tables based on your current models.py
         print("Recreating tables from current models...")
         models.Base.metadata.create_all(bind=engine)
         
-        print("✅ Database Cleaned and Re-aligned! You can now start Uvicorn.")
+        print("\n✅ Database Cleaned and Re-aligned! You can now start the server.")
     else:
         print("Operation cancelled.")
 

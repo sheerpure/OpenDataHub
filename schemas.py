@@ -53,10 +53,11 @@ class TransactionBase(BaseModel):
     category: str          
     transaction_type: str  # 'income' or 'expense'
     account_id: int        # [REQUIRED] Links the transaction to a specific account
+    date: Optional[str] = None # Stores the custom date from the frontend
 
 class TransactionCreate(TransactionBase):
     """Schema for creating a new transaction record."""
-    pass
+    account_id: int
 
 class TransactionSchema(TransactionBase):
     """Full transaction record including timestamp and ownership."""
