@@ -1,15 +1,26 @@
-# Python 虛擬環境
+# --- [PYTHON CORE] ---
 venv/
 __pycache__/
 *.pyc
-
-# 資料庫與密鑰
-*.db
 .env
 
-# 操作系統檔案
+# --- [SECURITY & CONFIG] ---
+# Crucial: Prevent sensitive credentials from being leaked to GitHub
+config.py
+*.db
+*.sqlite
+
+# --- [IDE & SYSTEM] ---
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
 
+# --- [PROJECT ARTIFACTS & LOGS] ---
 archive/
 *.json
+*.log
+test_evidence.log
+peek_db.py
+test_db.py
+seed_arxiv.py
