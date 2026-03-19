@@ -1,10 +1,14 @@
+import os
 from sqlalchemy import create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import Engine
 
-# Database URL for SQLite
-SQLALCHEMY_DATABASE_URL = "sqlite:///./fintech_ledger.db"
+# --- FIXED: Use Absolute Path to prevent data loss on refresh/restart ---
+# This ensures the database file is always in the same folder as this script
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "fintech_ledger.db")
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 # Create the SQLAlchemy engine
 # 'check_same_thread': False is required specifically for SQLite + FastAPI
@@ -14,7 +18,6 @@ engine = create_engine(
 
 # --- CRITICAL: SQLite Foreign Key Enabler ---
 # This listener ensures that 'ON DELETE CASCADE' is respected by SQLite.
-# Without this, deleting an account will NOT delete its transactions.
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
     cursor = dbapi_connection.cursor()
