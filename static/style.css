@@ -1,0 +1,32 @@
+/* --- UI/UX FOUNDATION --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+body { 
+    font-family: 'Inter', sans-serif; 
+    -webkit-font-smoothing: antialiased;
+}
+
+/* --- ANIMATIONS & MODALS --- */
+.modal { 
+    transition: opacity 0.25s ease, visibility 0.25s ease; 
+}
+
+/* Minimalist Scrollbar */
+::-webkit-scrollbar { 
+    width: 0px; 
+    background: transparent; 
+}
+
+.hidden {
+    display: none !important;
+}
+
+.modal-overlay {
+    backdrop-filter: blur(4px);
+}
+
+/* Active Nav State */
+.nav-active {
+    background-color: #f1f5f9; /* slate-100 */
+    color: #020617; /* slate-950 */
+}

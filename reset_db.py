@@ -1,34 +1,22 @@
-from sqlalchemy import text
-from database import engine, Base 
+from database import engine
 import models
 
 def reset_database():
-    print("⚠️  Warning: This will PERMANENTLY DELETE all data from your SQLite database!")
-    confirm = input("Are you sure? (y/n): ")
+    print("⚠️  CRITICAL WARNING: This will PERMANENTLY DELETE all financial records!")
+    confirm = input("Are you sure you want to WIPE the entire database? (y/n): ")
     
     if confirm.lower() == 'y':
-        with engine.connect() as conn:
-            print("Force dropping all tables...")
-            
-            # List tables in order: Drop child tables (with Foreign Keys) first
-            tables = ["audit_logs", "transactions", "accounts", "datasets", "users"]
-            
-            for table in tables:
-                try:
-                    conn.execute(text(f"DROP TABLE IF EXISTS {table};"))
-                    print(f" - Dropped table: {table}")
-                except Exception as e:
-                    print(f" - Error dropping {table}: {e}")
-            
-            conn.commit()
+        # [1] DROP ALL TABLES (SQLAlchemy handles foreign key order automatically)
+        print("Force dropping all tables via SQLAlchemy metadata...")
+        models.Base.metadata.drop_all(bind=engine)
         
-        # Now recreate the tables based on your current models.py
-        print("Recreating tables from current models...")
+        # [2] RECREATE TABLES
+        print("Recreating tables from the latest models.py...")
         models.Base.metadata.create_all(bind=engine)
         
-        print("\n✅ Database Cleaned and Re-aligned! You can now start the server.")
+        print("\n✅ Database Reset Complete! System is now in a clean state.")
     else:
-        print("Operation cancelled.")
+        print("Operation cancelled. Data is safe.")
 
 if __name__ == "__main__":
     reset_database()

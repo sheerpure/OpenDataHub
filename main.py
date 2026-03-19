@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 from pathlib import Path
 from typing import Optional, List
+from fastapi.staticfiles import StaticFiles
 
 # Internal Module Imports
 from database import get_db, engine
@@ -30,6 +31,8 @@ import schemas
 import auth
 from auth import get_current_user
 from services import LedgerService 
+
+
 
 # --- Configuration ---
 BASE_DIR = Path(__file__).resolve().parent
@@ -40,6 +43,9 @@ app = FastAPI(
     description="Enterprise Ledger with Field-Level Encryption.",
     version="2.2.0"
 )
+
+# Add this line near your app initialization
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.on_event("startup")
 def configure_db():

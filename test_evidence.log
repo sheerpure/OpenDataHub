@@ -1,0 +1,31 @@
+2026-03-20 01:33:41,235 [INFO] --- TEST SESSION START: Initializing DB ---
+2026-03-20 01:33:41,747 [INFO] HTTP Request: POST http://testserver/api/v1/auth/register "HTTP/1.1 200 OK"
+2026-03-20 01:33:42,208 [INFO] HTTP Request: POST http://testserver/api/v1/auth/login "HTTP/1.1 200 OK"
+2026-03-20 01:33:42,208 [INFO] [SCENARIO 1] Standard Flow for user_21e148
+2026-03-20 01:33:42,241 [INFO] HTTP Request: POST http://testserver/api/v1/accounts "HTTP/1.1 201 Created"
+2026-03-20 01:33:42,269 [INFO] HTTP Request: POST http://testserver/api/v1/accounts "HTTP/1.1 201 Created"
+2026-03-20 01:33:42,302 [INFO] HTTP Request: POST http://testserver/api/v1/transfers "HTTP/1.1 201 Created"
+2026-03-20 01:33:42,305 [INFO]    >>> DB EVIDENCE | Account: Vault_A | Raw_Balance: 800.0
+2026-03-20 01:33:42,306 [INFO]    >>> DB EVIDENCE | Account: Vault_B | Raw_Balance: 250.0
+2026-03-20 01:33:42,306 [INFO] ✅ SCENARIO 1 PASSED.
+2026-03-20 01:33:42,858 [INFO] HTTP Request: POST http://testserver/api/v1/auth/register "HTTP/1.1 200 OK"
+2026-03-20 01:33:43,217 [INFO] HTTP Request: POST http://testserver/api/v1/auth/login "HTTP/1.1 200 OK"
+2026-03-20 01:33:43,218 [INFO] [SCENARIO 2] Overdraft Check for user_d67056
+2026-03-20 01:33:43,246 [INFO] HTTP Request: POST http://testserver/api/v1/accounts "HTTP/1.1 201 Created"
+2026-03-20 01:33:43,274 [INFO] HTTP Request: POST http://testserver/api/v1/accounts "HTTP/1.1 201 Created"
+2026-03-20 01:33:43,275 [INFO]    💸 Attempting illegal transfer: $99,999 from SmallVault
+2026-03-20 01:33:43,293 [INFO] HTTP Request: POST http://testserver/api/v1/transfers "HTTP/1.1 400 Bad Request"
+2026-03-20 01:33:43,295 [INFO]    >>> DB EVIDENCE | ID:3 | Current_Balance: 10.0
+2026-03-20 01:33:43,296 [INFO] ✅ SCENARIO 2 PASSED.
+2026-03-20 01:33:43,720 [INFO] HTTP Request: POST http://testserver/api/v1/auth/register "HTTP/1.1 200 OK"
+2026-03-20 01:33:44,153 [INFO] HTTP Request: POST http://testserver/api/v1/auth/login "HTTP/1.1 200 OK"
+2026-03-20 01:33:44,154 [INFO] [SCENARIO 3] Negative Amount Check for user_950ef3
+2026-03-20 01:33:44,182 [INFO] HTTP Request: POST http://testserver/api/v1/accounts "HTTP/1.1 201 Created"
+2026-03-20 01:33:44,199 [INFO] HTTP Request: POST http://testserver/api/v1/transfers "HTTP/1.1 400 Bad Request"
+2026-03-20 01:33:44,201 [INFO]    >>> DB EVIDENCE | ID:5 | Balance: 500.0
+2026-03-20 01:33:44,201 [INFO] ✅ SCENARIO 3 PASSED.
+2026-03-20 01:33:44,206 [INFO] [SCENARIO 4] Unauthorized Access Guard
+2026-03-20 01:33:44,217 [INFO] HTTP Request: GET http://testserver/api/v1/accounts "HTTP/1.1 401 Unauthorized"
+2026-03-20 01:33:44,218 [INFO]    >>> GUARD EVIDENCE | Response Status: 401
+2026-03-20 01:33:44,219 [INFO] ✅ SCENARIO 4 PASSED.
+2026-03-20 01:33:44,274 [INFO] --- TEST SESSION END: Cleaning Up ---

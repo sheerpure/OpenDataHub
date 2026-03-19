@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In - FinTechHub</title>
+    <link rel="stylesheet" href="/static/style.css">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-[#f8fafc] min-h-screen flex items-center justify-center p-6">
@@ -33,37 +35,6 @@
         </div>
     </div>
 
-    <script>
-        document.getElementById('login-form').onsubmit = async (e) => {
-            e.preventDefault();
-            const errorDiv = document.getElementById('error-msg');
-            errorDiv.classList.add('hidden');
-
-            // OAuth2PasswordRequestForm expects FormData (URL encoded)
-            const formData = new FormData();
-            formData.append('username', document.getElementById('username').value);
-            formData.append('password', document.getElementById('password').value);
-
-            try {
-                const resp = await fetch('/api/v1/auth/login', {
-                    method: 'POST',
-                    body: formData // Note: FastAPI handles both JSON and Form Data depending on configuration
-                });
-
-                const data = await resp.json();
-
-                if (resp.ok) {
-                    localStorage.setItem('token', data.access_token);
-                    window.location.href = '/'; // Redirect to dashboard
-                } else {
-                    errorDiv.innerText = data.detail || "Authentication failed";
-                    errorDiv.classList.remove('hidden');
-                }
-            } catch (err) {
-                errorDiv.innerText = "Connection error.";
-                errorDiv.classList.remove('hidden');
-            }
-        };
-    </script>
+    <script src="/static/login.js"></script>
 </body>
 </html>
