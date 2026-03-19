@@ -227,3 +227,93 @@ class LedgerService:
         except Exception:
             db.rollback()
             raise HTTPException(status_code=500, detail="Update failed.")
+    @staticmethod
+    def transfer_funds(db: Session, transfer_in: schemas.TransferCreate, user_id: int):
+        """
+        ATOMIC OPERATION: Moves money between two accounts.
+        1. Sorts IDs to prevent Deadlocks.
+        2. Row-level locks both accounts.
+        3. Creates two balanced transaction records (Debit/Credit).
+        4. Logs the security audit trail.
+        """
+        if transfer_in.from_account_id == transfer_in.to_account_id:
+            raise HTTPException(status_code=400, detail="Source and destination accounts must be different.")
+        
+        if transfer_in.amount <= 0:
+            raise HTTPException(status_code=400, detail="Transfer amount must be positive.")
+
+        # [1] DEADLOCK PREVENTION: Always lock the account with the smaller ID first
+        account_ids = sorted([transfer_in.from_account_id, transfer_in.to_account_id])
+        
+        try:
+            # [2] LOCK ACCOUNTS
+            accounts_map = {}
+            for acc_id in account_ids:
+                acc = db.query(models.Account).filter(
+                    models.Account.id == acc_id,
+                    models.Account.owner_id == user_id
+                ).with_for_update().first()
+                if not acc:
+                    raise HTTPException(status_code=404, detail=f"Account #{acc_id} not found.")
+                accounts_map[acc_id] = acc
+
+            from_acc = accounts_map[transfer_in.from_account_id]
+            to_acc = accounts_map[transfer_in.to_account_id]
+
+            # [3] VALIDATE BALANCE
+            if from_acc.balance < transfer_in.amount:
+                raise HTTPException(status_code=400, detail="Insufficient funds in source account.")
+
+            # [4] EXECUTE BALANCED UPDATES
+            from_acc.balance -= transfer_in.amount
+            to_acc.balance += transfer_in.amount
+
+            # [5] ENCRYPT & PERSIST DOUBLE-ENTRY RECORDS
+            enc_amt = auth.encrypt_amount(transfer_in.amount)
+            tx_date = datetime.now()
+            if transfer_in.date:
+                try: tx_date = datetime.strptime(transfer_in.date, "%Y-%m-%d")
+                except: pass
+
+            # Debit Entry (From Account)
+            debit_tx = models.Transaction(
+                description=f"Transfer to {to_acc.name}: {transfer_in.description}",
+                amount=enc_amt,
+                category="Transfer",
+                transaction_type="expense",
+                account_id=from_acc.id,
+                owner_id=user_id,
+                date=tx_date
+            )
+            # Credit Entry (To Account)
+            credit_tx = models.Transaction(
+                description=f"Transfer from {from_acc.name}: {transfer_in.description}",
+                amount=enc_amt,
+                category="Transfer",
+                transaction_type="income",
+                account_id=to_acc.id,
+                owner_id=user_id,
+                date=tx_date
+            )
+
+            db.add_all([debit_tx, credit_tx])
+            db.flush()
+
+            # [6] AUDIT LOG
+            log = models.AuditLog(
+                user_id=user_id,
+                action="TRANSFER_FUNDS",
+                target_id=debit_tx.id,
+                details=f"Transferred ${transfer_in.amount} from {from_acc.name} to {to_acc.name}"
+            )
+            db.add(log)
+            db.commit()
+            
+            return {"status": "success", "amount": transfer_in.amount}
+
+        except HTTPException:
+            db.rollback()
+            raise
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Transfer failed: {str(e)}")

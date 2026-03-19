@@ -184,3 +184,15 @@ def update_transaction(
 ):
     """Updates a transaction's details and synchronizes the account balance."""
     return LedgerService.update_transaction(db, tx_id, tx_in, current_user.id)
+
+@app.post("/api/v1/transfers", tags=["Finance"], status_code=201)
+def internal_transfer(
+    transfer_in: schemas.TransferCreate, 
+    db: Session = Depends(get_db), 
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Executes a secure internal transfer between two accounts owned by the user.
+    Ensures ACID compliance and encrypted audit trailing.
+    """
+    return LedgerService.transfer_funds(db, transfer_in, current_user.id)

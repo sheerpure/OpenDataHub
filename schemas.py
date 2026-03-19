@@ -86,3 +86,11 @@ class AuditLogSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+class TransferCreate(BaseModel):
+    """Schema for moving funds between two internal accounts."""
+    from_account_id: int
+    to_account_id: int
+    amount: float
+    description: Optional[str] = "Internal Transfer智匯轉帳"
+    date: Optional[str] = None
