@@ -207,7 +207,7 @@ def internal_transfer(
 def delete_account(
     account_id: int, 
     db: Session = Depends(get_db), 
-    current_user: User = Depends(auth.get_current_user)
+    current_user = Depends(auth.get_current_user) # 移除 : User
 ):
     # 1. Locate the specific account and verify ownership
     account = db.query(models.Account).filter(
