@@ -206,6 +206,13 @@ document.getElementById('transactionForm').onsubmit = async (e) => {
     e.preventDefault();
     const currentActive = document.getElementById('headerAccountFilter').value;
     
+    const amtValue = parseFloat(document.getElementById('amt').value);
+    if (isNaN(amtValue) || amtValue <= 0) {
+        alert("請輸入大於 0 的合法金額！"); // 擋住負數與 0
+        document.getElementById('amt').focus();
+        return; 
+    }
+
     const payload = { 
         account_id: parseInt(document.getElementById('accountSelect').value), 
         description: document.getElementById('desc').value, 
@@ -341,6 +348,7 @@ function toggleModal() {
     if (document.getElementById('modal').classList.contains('opacity-0')) {
         document.getElementById('modalTitle').innerText = "New Ledger Entry";
         document.getElementById('submitTxBtn').innerText = "Confirm Entry";
+        document.getElementById('transactionForm').reset();
         editingTxId = null;
     }
 }
