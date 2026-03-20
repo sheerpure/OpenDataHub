@@ -275,7 +275,7 @@ document.getElementById('accountForm').onsubmit = async (e) => {
     e.preventDefault();
     const payload = { name: document.getElementById('accName').value, balance: parseFloat(document.getElementById('accBalance').value) };
     const res = await fetch('/api/v1/accounts', { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    if (res.ok) { toggleAccountModal(); initDashboard(); }
+    if (res.ok) { toggleAccountModal(); document.getElementById('accountForm').reset(); initDashboard(); }
 };
 
 async function deleteTx(id) {
@@ -320,11 +320,24 @@ function updateAccountUI(accounts, activeId = 'all') {
     sidebar.innerHTML = accounts.map(a => {
         const isActive = String(currentActive) === String(a.id);
         const bgClass = isActive ? 'bg-slate-200 ring-1 ring-slate-300' : 'hover:bg-white';
-        return `<div onclick="selectAccountFromSidebar('${a.id}')" class="flex justify-between items-center p-2.5 rounded-xl transition-all cursor-pointer ${bgClass}"><span class="text-slate-900 font-bold text-xs truncate w-32">${a.name}</span><span class="text-sm font-black text-slate-700">$${a.balance.toLocaleString()}</span></div>`;
+        
+        return `
+            <div onclick="selectAccountFromSidebar('${a.id}')" 
+                 class="group flex justify-between items-center p-2.5 rounded-xl transition-all cursor-pointer ${bgClass}">
+                <div class="flex flex-col">
+                    <span class="text-slate-900 font-bold text-xs truncate w-24">${a.name}</span>
+                    <span class="text-[11px] font-black text-slate-500">$${a.balance.toLocaleString()}</span>
+                </div>
+                
+                <button onclick="event.stopPropagation(); deleteAccount(${a.id})" 
+                        class="opacity-0 group-hover:opacity-100 px-2 py-1 text-[10px] font-black text-rose-400 hover:text-rose-600 uppercase transition-all">
+                    Delete
+                </button>
+            </div>`;
     }).join('');
     
     filterSelect.innerHTML = '<option value="all">ALL ACCOUNTS</option>' + accounts.map(a => `<option value="${a.id}">${a.name.toUpperCase()}</option>`).join('');
-    filterSelect.value = currentActive; // Maintain selection
+    filterSelect.value = currentActive; 
 
     document.getElementById('accountSelect').innerHTML = accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
 }
@@ -366,3 +379,18 @@ function toggleTransferModal() {
 function logout() { localStorage.removeItem('token'); window.location.href = '/login'; }
 
 window.onload = initDashboard;
+
+async function deleteAccount(id) {
+    if (confirm("刪除帳號會連同該帳號的交易紀錄一併刪除，確定嗎？")) {
+        const res = await fetch(`/api/v1/accounts/${id}`, { 
+            method: 'DELETE', 
+            headers: { 'Authorization': `Bearer ${token}` } 
+        });
+        if (res.ok) {
+            initDashboard(); 
+        } else {
+            const err = await res.json();
+            alert(`刪除失敗: ${err.detail}`);
+        }
+    }
+}

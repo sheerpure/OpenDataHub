@@ -202,3 +202,33 @@ def internal_transfer(
     Ensures ACID compliance and encrypted audit trailing.
     """
     return LedgerService.transfer_funds(db, transfer_in, current_user.id)
+
+@app.delete("/api/v1/accounts/{account_id}")
+def delete_account(
+    account_id: int, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(auth.get_current_user)
+):
+    # 1. Locate the specific account and verify ownership
+    account = db.query(models.Account).filter(
+        models.Account.id == account_id, 
+        models.Account.owner_id == current_user.id
+    ).first()
+
+    if not account:
+        raise HTTPException(
+            status_code=404, 
+            detail="Account not found or access denied"
+        )
+
+    # 2. Perform manual cascade delete: remove all transactions tied to this account
+    # This prevents foreign key constraint violations during account deletion
+    db.query(models.Transaction).filter(
+        models.Transaction.account_id == account_id
+    ).delete()
+    
+    # 3. Permanently remove the account record from the database
+    db.delete(account)
+    db.commit()
+
+    return {"message": "Account and associated transactions deleted successfully"}
