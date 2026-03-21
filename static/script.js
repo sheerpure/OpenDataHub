@@ -348,9 +348,13 @@ async function initDashboard() {
         const acctRes = await fetch('/api/v1/accounts', { headers: { 'Authorization': `Bearer ${token}` } });
         if (acctRes.status === 401) { logout(); return; }
         allAccounts = await acctRes.json();
-        updateAccountUI(allAccounts, 'all'); // Start with 'all' by default
+        updateAccountUI(allAccounts, 'all'); 
         applyFilter();
         document.getElementById('currentUserDisplay').innerText = `Active Session`;
+
+        
+        await fetchAdminStats(); 
+
     } catch (err) { console.error("Init Error", err); }
 }
 
