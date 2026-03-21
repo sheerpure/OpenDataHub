@@ -20,6 +20,7 @@ class User(Base):
     accounts = relationship("Account", back_populates="owner", cascade="all, delete-orphan")
     transactions = relationship("Transaction", back_populates="owner", cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="user_ref")
+    accounts = relationship("Account", back_populates="owner") # [ADD THIS LINE] Establishes a relationship to count accounts per user
 
 class Account(Base):
     """

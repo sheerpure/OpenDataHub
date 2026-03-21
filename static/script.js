@@ -394,3 +394,30 @@ async function deleteAccount(id) {
         }
     }
 }
+
+/**
+ * ADMIN ENGINE: Fetches system-wide user statistics.
+ * Only executes successfully if the logged-in user has admin rights.
+ */
+async function fetchAdminStats() {
+    try {
+        const res = await fetch('/api/v1/admin/users', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+            const users = await res.json();
+            console.log("--- ADMIN SYSTEM REPORT ---");
+            console.table(users); // Displays a neat table in your Browser Console (F12)
+            
+            // Optional: You can render this to a specific DIV in your HTML later
+        } else {
+            console.log("Access to Admin API restricted.");
+        }
+    } catch (err) {
+        console.error("Admin Sync Error:", err);
+    }
+}
+
+// [IMPORTANT] Add this call at the end of your existing initDashboard() function:
+// await fetchAdminStats();

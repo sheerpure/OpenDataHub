@@ -32,6 +32,7 @@ import auth
 from auth import get_current_user
 from services import LedgerService 
 from contextlib import asynccontextmanager
+from config import settings
 
 
 
@@ -227,32 +228,32 @@ def internal_transfer(
     """
     return LedgerService.transfer_funds(db, transfer_in, current_user.id)
 
-@app.delete("/api/v1/accounts/{account_id}")
-def delete_account(
-    account_id: int, 
+@app.get("/api/v1/admin/users", tags=["Admin"])
+def get_system_users(
     db: Session = Depends(get_db), 
-    current_user = Depends(auth.get_current_user) # 移除 : User
+    current_user: models.User = Depends(get_current_user)
 ):
-    # 1. Locate the specific account and verify ownership
-    account = db.query(models.Account).filter(
-        models.Account.id == account_id, 
-        models.Account.owner_id == current_user.id
-    ).first()
-
-    if not account:
+    """
+    Administrative endpoint to monitor system growth.
+    Restricted to specific admin username for security.
+    """
+    # [SECURITY CHECK] Replace 'Eason' with your actual admin username
+    if current_user.username != "Eason":
         raise HTTPException(
-            status_code=404, 
-            detail="Account not found or access denied"
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Administrative privileges required."
         )
 
-    # 2. Perform manual cascade delete: remove all transactions tied to this account
-    # This prevents foreign key constraint violations during account deletion
-    db.query(models.Transaction).filter(
-        models.Transaction.account_id == account_id
-    ).delete()
+    users = db.query(models.User).all()
     
-    # 3. Permanently remove the account record from the database
-    db.delete(account)
-    db.commit()
+    # [DATA AGGREGATION] Map user data and count their linked accounts
+    admin_data = []
+    for u in users:
+        admin_data.append({
+            "username": u.username,
+            "email": u.email,
+            "account_count": len(u.accounts)
+        })
+    
+    return admin_data
 
-    return {"message": "Account and associated transactions deleted successfully"}
