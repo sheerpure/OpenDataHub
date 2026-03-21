@@ -1,34 +1,46 @@
-# FinTechHub | 分散式安全財務帳本系統
+# 💰 FinTech Hub - 個人資產管理系統 (加密安全版)
 
-本專案為一套基於 **FastAPI** 與 **PostgreSQL** 構建的後端帳務系統。核心設計目標在於確保財務數據的 **絕對私密性** 與 **高並發環境下的數據一致性**，並透過 Service Layer 模式實現業務邏輯與 API 介面的完全解耦。
+這是一個基於 **FastAPI** 與 **PostgreSQL** 構建的現代化個人帳本。開發初衷是在提供流暢 UI 的同時，導入金融級的資料安全保護機制，確保每一筆收支紀錄都受到嚴格保護
 
-## 🛠️ 核心架構與技術實作
+---
 
-### 1. 欄位級數據加密 (Field-Level Encryption)
-為了保障使用者隱私，本系統針對敏感財務欄位（如 Transaction Amount）實作了 **AES-256-CBC** 對稱加密。
-- **機制**：數據在進入持久層（Persistence Layer）前由 `auth.py` 進行加密，讀取後再行動態解密。
-- **優勢**：即使資料庫層級發生非授權存取，攻擊者亦無法取得真實財務明細。
+## 🚀 專案與技術細節
 
-### 2. 並發控制與死鎖防止 (Concurrency & Deadlock Prevention)
-在處理帳戶轉帳等涉及多行更新的操作時，本系統採用了嚴謹的鎖定策略：
-- **行級鎖定 (Row-level Locking)**：利用 SQLAlchemy 的 `with_for_update()` 確保計算期間餘額不被篡改。
-- **排序鎖定機制**：系統會自動對多個帳戶 ID 進行排序並依序請求鎖定，從根本上消除了循環等待造成的 **資料庫死鎖 (Deadlock)**。
+### 1. 🛡️ 資料防禦與加密 (Security First)
+* **AES-256 欄位加密**：使用 Fernet (對稱加密) 對敏感的交易描述進行加密。即使資料庫遭劫，攻擊者也無法直接讀取原始消費明細
+* **JWT 身份驗證**：實作完整的註冊與登入流程，透過密鑰簽發 Token，確保資料存取權限
+* **防禦性編程 (Defensive Coding)**：前後端同步驗證金額數值，杜絕負數或非法字串進入資料庫，確保資料完整性 (Data Integrity)
 
-### 3. 事務原子性 (Transactional Atomicity)
-所有帳務操作皆封裝於單一資料庫事務（Transaction）中。
-- **特性**：遵循 ACID 原則，確保轉帳操作的 **不可分割性**。若任一環節出錯，系統將執行自動回滾（Rollback），防止產生帳實不符的壞帳。
+### 2. ⚡ 高性能後端架構
+* **FastAPI & Python 3.11**：利用非同步 (Asynchronous) 特性確保 API 高併發下的響應速度
+* **SQLAlchemy 2.0**：控制資料庫關聯，支援「級聯刪除 (Cascade Delete)」。當使用者刪除帳戶時，系統會自動清理所有關聯交易紀錄
 
-### 4. 模組化前端與狀態持久化
-- **關注點分離 (SoC)**：前端採用 HTML/CSS/JS 物理隔離架構，提升代碼維護性與瀏覽器快取效率。
-- **UI 狀態同步**：優化了異步請求後的組件渲染邏輯，解決了 CRUD 操作後過濾器狀態（Filter State）重置的 UI 缺陷。
+### 3. 🛠️ 部署實戰紀錄
+在部署至 Render 雲端平台時，克服了環境隱性差異
+* **相容性修復**：解決了 Python 3.14 與 `passlib/bcrypt` 庫不相容導致的 500 錯誤，最終透過鎖定 `bcrypt==4.0.1` 成功上線
+* **雲端配置優化**：實現程式碼與密鑰分離，透過 Render 環境變數安全管理 `ENCRYPTION_KEY`
 
-## 🧪 自動化測試 (Testing)
+---
 
-專案內置 `test_main.py` 整合測試腳本，覆蓋以下核心路徑：
-- JWT 鑑權與身分隔離
-- 帳戶生命週期管理
-- 高並發下的轉帳數據完整性驗證
+## 📸 功能展示
 
-```bash
-# 執行測試
-pytest test_main.py
+### ✨ 登入與註冊流程
+> (screenshots/register.png)
+
+### ✨ 個人資產總覽 (Dashboard)
+>  ![Dashboard Overview](screenshots/dashboard.png)
+
+### ✨ 嚴謹的輸入驗證
+>  ![Validation UI](screenshots/validation.png)
+
+### ✨ 帳戶管理功能
+> ![Account Management](screenshots/delete_account.png)
+
+---
+
+## 🛠️ 技術棧 (Tech Stack)
+* **Backend**: FastAPI, SQLAlchemy, Pydantic, Passlib (BCrypt)
+* **Frontend**: Tailwind CSS, Pure JavaScript, Chart.js
+* **Database**: PostgreSQL (Render Managed)
+* **DevOps**: Render PaaS, Git/GitHub
+
