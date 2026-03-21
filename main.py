@@ -31,6 +31,7 @@ import schemas
 import auth
 from auth import get_current_user
 from services import LedgerService 
+from contextlib import asynccontextmanager
 
 
 
@@ -38,19 +39,37 @@ from services import LedgerService
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
+# --- Lifespan Management ---
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Handles application startup and shutdown events.
+    Replaces the deprecated @app.on_event("startup") pattern.
+    """
+    # [Startup]: Logic to execute when the server starts
+    # Create database tables if they do not exist
+    models.Base.metadata.create_all(bind=engine)
+    
+    yield  # Control is handed over to the FastAPI application
+    
+    # [Shutdown]: Logic to execute when the server stops
+    # (e.g., closing database connection pools or clearing cache)
+    pass
+
+# --- FastAPI Initialization ---
+
 app = FastAPI(
     title="FinTechHub Secure",
     description="Enterprise Ledger with Field-Level Encryption.",
-    version="2.2.0"
+    version="2.2.0",
+    lifespan=lifespan
 )
 
-# Add this line near your app initialization
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# --- Static Files Configuration ---
 
-@app.on_event("startup")
-def configure_db():
-    """Create database tables on startup if they do not exist."""
-    models.Base.metadata.create_all(bind=engine)
+# Mount the static directory to serve CSS, JS, and images
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # --- Frontend Shell (SSR) ---
 
@@ -146,26 +165,31 @@ def delete_account(account_id: int, db: Session = Depends(get_db), current_user 
 def list_transactions(
     account_id: Optional[int] = None,
     sort_by: Optional[str] = "date_desc",
+    skip: int = 0,    # Offset for pagination
+    limit: int = 20,  # Max records per request to prevent OOM (Out of Memory)
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    """Fetches transactions with in-memory sorting logic for encrypted data."""
+    """Fetches paginated transactions with server-side filtering."""
     query = db.query(models.Transaction).filter(models.Transaction.owner_id == current_user.id)
     if account_id:
         query = query.filter(models.Transaction.account_id == account_id)
     
-    db_txs = query.all()
+    # Apply limit and offset at the database level before fetching to memory
+    db_txs = query.offset(skip).limit(limit).all()
     processed_txs = LedgerService.get_processed_transactions(db_txs)
 
-    # Manual sorting for numerical accuracy after decryption
-    if sort_by == "date_asc":
-        processed_txs.sort(key=lambda x: x.date)
-    elif sort_by == "date_desc":
-        processed_txs.sort(key=lambda x: x.date, reverse=True)
-    elif sort_by == "amount_asc":
-        processed_txs.sort(key=lambda x: x.amount)
-    elif sort_by == "amount_desc":
-        processed_txs.sort(key=lambda x: x.amount, reverse=True)
+    # In-memory sorting remains necessary due to field-level encryption (ciphertexts cannot be sorted via SQL)
+    sort_map = {
+        "date_asc": (lambda x: x.date, False),
+        "date_desc": (lambda x: x.date, True),
+        "amount_asc": (lambda x: x.amount, False),
+        "amount_desc": (lambda x: x.amount, True),
+    }
+    
+    if sort_by in sort_map:
+        key_func, is_reverse = sort_map[sort_by]
+        processed_txs.sort(key=key_func, reverse=is_reverse)
     
     return processed_txs
 
