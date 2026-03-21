@@ -120,47 +120,34 @@ class LedgerService:
 
     @staticmethod
     def delete_account(db: Session, account_id: int, user_id: int):
-        """
-        Safely deletes an account and its history with explicit manual cascade.
-        Ensures ACID compliance and security logging.
-        """
-    # 1. Verify ownership and get account name for logging
-    account = db.query(models.Account).filter(
-        models.Account.id == account_id,
-        models.Account.owner_id == user_id
-    ).first()
+        """Safely deletes an account and its history with manual cascade."""
+        account = db.query(models.Account).filter(
+            models.Account.id == account_id,
+            models.Account.owner_id == user_id
+        ).first()
 
-    if not account:
-        raise HTTPException(status_code=404, detail="Account not found.")
+        if not account:
+            raise HTTPException(status_code=404, detail="Account not found.")
 
-    try:
-        # 2. Record the action in AuditLogs before the data is gone
-        log = models.AuditLog(
-            user_id=user_id, 
-            action="DELETE_ACCOUNT", 
-            target_id=account_id, 
-            details=f"Deleted account: {account.name}"
-        )
-        db.add(log)
+        try:
+            log = models.AuditLog(
+                user_id=user_id, 
+                action="DELETE_ACCOUNT", 
+                target_id=account_id, 
+                details=f"Deleted account: {account.name}"
+            )
+            db.add(log)
 
-        # 3. Explicitly delete associated transactions (Manual Cascade)
-        # This prevents Foreign Key errors if DB-level cascade isn't configured
-        db.query(models.Transaction).filter(
-            models.Transaction.account_id == account_id
-        ).delete()
+            db.query(models.Transaction).filter(
+                models.Transaction.account_id == account_id
+            ).delete()
 
-        # 4. Remove the account itself
-        db.delete(account)
-
-        # 5. Atomic Commit: Both log and deletions happen together
-        db.commit()
-        return {"status": "success", "message": "Account removed."}
-
-    except Exception as e:
-        # Rollback all changes if any step fails to prevent data corruption
-        db.rollback()
-        print(f"Delete Account Error: {str(e)}") # Useful for debugging in Render logs
-        raise HTTPException(status_code=500, detail="Account removal failed due to system error.")
+            db.delete(account)
+            db.commit()
+            return {"status": "success", "message": "Account removed."}
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=500, detail="Account removal failed.")
 
     @staticmethod
     def get_processed_transactions(query_results):
